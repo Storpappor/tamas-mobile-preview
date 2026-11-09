@@ -199,6 +199,7 @@ export class Player extends Fighter {
     this.maxX = WORLD_WIDTH - 10;
     this.sprinting = false;
     this.sprintDir = null;  // the double-tapped direction; releasing it ends the sprint
+    this.sprintHeld = false; // the sprint comes from a held `sprint` input (touch pad), not a double-tap
     this.tapTimers = { left: 0, right: 0, up: 0, down: 0 };
     this.heldMove = { left: false, right: false, up: false, down: false };
   }
@@ -254,6 +255,22 @@ export class Player extends Fighter {
       this.heldMove[d] = held;
     }
     if (this.sprinting && !input[this.sprintDir]) { this.sprinting = false; this.sprintDir = null; }
+    // A held `sprint` input (the touch pad's outer zone) runs for as long as it is held together
+    // with a direction; the direction may change without ending the run. Letting go of the zone
+    // ends it. Same speed, facing and guard rules as the double-tap sprint, which is untouched.
+    if (input.sprint) {
+      const dir = MOVE_DIRS.find((d) => input[d]);
+      if (dir) {
+        if (!this.sprinting && !this.dead) this.lastEvent = 'sprint';
+        this.sprinting = true;
+        this.sprintDir = dir;
+        this.sprintHeld = true;
+      }
+    } else if (this.sprintHeld) {
+      this.sprintHeld = false;
+      this.sprinting = false;
+      this.sprintDir = null;
+    }
   }
 
   // `input` is a snapshot: { left, right, up, down, duck, jump, punch, kick, block } where

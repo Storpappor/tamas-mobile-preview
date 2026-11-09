@@ -11,6 +11,7 @@ import { HeroSprite, SpriteSheet } from './heroSprite.js';
 import { ENEMY_SHEETS } from './enemySprite.js';
 import { ART_SCALE } from './artScale.js';
 import { BACKGROUNDS, loadBackground } from './background.js';
+import { installGestureGuard } from './gestures.js';
 
 const SPRITE_URL = new URL('../assets/tamas-hero-spritesheet.png', import.meta.url).href;
 const HERO_SHEET_URL = new URL('../assets/sprites/tamas.json', import.meta.url).href;
@@ -147,11 +148,10 @@ export function boot(root) {
   // Touch controls: shown on coarse pointers, or as soon as a touch is detected.
   ui.setTouchVisible(window.matchMedia('(pointer: coarse)').matches);
   input.onTouchDetected = () => ui.setTouchVisible(true);
-  // Stop the page from scrolling/zooming while thumbs are on the controls.
-  const touchArea = root.querySelector('[data-touch]');
-  for (const el of [touchArea, stage]) {
-    if (el) el.addEventListener('touchmove', (e) => { if (game.state === 'playing') e.preventDefault(); }, { passive: false });
-  }
+  // Pinch and double-tap zoom are refused wherever they start inside the game, one-finger moves
+  // are refused while playing (menus may still scroll), a zoom that slips through while playing or
+  // on rotation is snapped back, and a rotation forgets every held thumb. See gestures.js.
+  const gestures = installGestureGuard({ root, isPlaying: () => game.state === 'playing', onRotate: () => input.reset() });
 
   // Pause when the tab is hidden or the window loses focus: silently, unlike a manual pause.
   document.addEventListener('visibilitychange', () => {
@@ -251,7 +251,7 @@ export function boot(root) {
     }
     setInterval(() => {
       const held = Object.entries(input.sources).filter(([, s]) => s.size).map(([a, s]) => `${a}:${s.size}`).join(' ') || 'nothing';
-      box.textContent = [`held ${held}`, `game=${game.state} ${window.innerWidth}x${window.innerHeight} ${screen.orientation ? screen.orientation.type : ''}`, '--- input layer ---', ...log, '--- browser ---', ...raw].join('\n');
+      box.textContent = [`held ${held}`, `game=${game.state}`, gestures.describe(), '--- input layer ---', ...log, '--- browser ---', ...raw].join('\n');
     }, 100);
   }
   root.karateHeroSheet = heroSheet;
