@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Master Tamas: Siege of Sanshin. An original arcade-style side-scrolling karate game.">
+  <title>Master Tamas: Siege of Sanshin</title>
+  <link rel="stylesheet" href="karate-game.css">
+</head>
+<body class="kg-page">
+  <!--
+    Everything for the game lives inside #karate-game. Styles are prefixed with "kg-"
+    so this block can be dropped into any page of the website without side effects.
+  -->
+  <main class="kg-wrap">
+    <div id="karate-game" class="kg-root">
+      <header class="kg-hud" aria-label="Game status">
+        <div class="kg-hud__health">
+          <span class="kg-hud__label kg-hud__name">Tamas</span>
+          <div class="kg-bar" role="img" aria-label="Player health">
+            <div class="kg-bar__fill" data-hud="health"></div>
+          </div>
+          <span class="kg-hud__small" data-hud="health-text">100 / 100</span>
+        </div>
+        <div class="kg-hud__stat"><span class="kg-hud__label">Score</span><strong data-hud="score">0</strong></div>
+        <div class="kg-hud__stat"><span class="kg-hud__label">Enemies</span><strong data-hud="enemies">22</strong></div>
+        <div class="kg-hud__stat" data-hud="combo-wrap" hidden><span class="kg-hud__label">Combo</span><strong data-hud="combo">x1</strong></div>
+        <div class="kg-hud__kiai">
+          <span class="kg-hud__label">Ajsich</span>
+          <div class="kg-bar kg-bar--kiai" role="img" aria-label="Ajsich meter">
+            <div class="kg-bar__fill" data-hud="kiai"></div>
+          </div>
+          <span class="kg-hud__small" data-hud="kiai-text">Ready</span>
+        </div>
+        <div class="kg-hud__boss" data-hud="boss-wrap" hidden>
+          <span class="kg-hud__label">Kage</span>
+          <div class="kg-bar kg-bar--boss" role="img" aria-label="Boss health">
+            <div class="kg-bar__fill" data-hud="boss"></div>
+          </div>
+        </div>
+        <div class="kg-hud__buttons">
+          <button type="button" class="kg-btn kg-btn--small" data-action="pause">Pause</button>
+          <button type="button" class="kg-btn kg-btn--small" data-action="sound" aria-pressed="true">Sound: On</button>
+        </div>
+      </header>
+
+      <div class="kg-stage" data-stage>
+        <canvas width="320" height="180" aria-label="Master Tamas: Siege of Sanshin game"></canvas>
+
+        <section class="kg-overlay kg-overlay--story" data-overlay="story" hidden aria-live="polite">
+          <div class="kg-story__rule"></div>
+          <p class="kg-story__text" data-story-text></p>
+          <div class="kg-story__rule"></div>
+          <p class="kg-story__hint" data-story-hint>Enter · Space · tap to continue</p>
+          <button type="button" class="kg-btn kg-btn--ghost" data-action="skip-story">Skip intro</button>
+        </section>
+
+        <section class="kg-overlay" data-overlay="start">
+          <h1 class="kg-title">Master Tamas</h1>
+          <p class="kg-title__sub">Siege of Sanshin</p>
+          <p class="kg-sub">Fight your way across Södermalm and into the dojo.</p>
+          <p class="kg-quote">“I Algeriet räknade vi inte poäng. Dra tillbaka benet. Gå.”</p>
+          <div class="kg-controls">
+            <div>
+              <h2>Keyboard</h2>
+              <ul>
+                <li><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> or <kbd>WASD</kbd> move</li>
+                <li><kbd>C</kbd> duck</li>
+                <li><kbd>Space</kbd> jump</li>
+                <li><kbd>J</kbd> punch &nbsp; <kbd>K</kbd> kick &nbsp; <kbd>L</kbd> block</li>
+                <li><kbd>J</kbd>+<kbd>K</kbd> together: grab and throw</li>
+                <li>Double-tap a direction to sprint</li>
+                <li>Hold away from a strike to block it</li>
+                <li><kbd>I</kbd> Ajsich (kiai): double damage for 4 s</li>
+                <li><kbd>P</kbd> or <kbd>Esc</kbd> pause</li>
+              </ul>
+            </div>
+            <div>
+              <h2>Tips</h2>
+              <ul>
+                <li>Duck under high kicks, jump over low sweeps.</li>
+                <li>Hold block, or hold away from a strike, to absorb it.</li>
+                <li>A throw goes through a guard; strikes do not.</li>
+                <li>Ajsich breaks guards but needs time to recharge. Caught mid-kick? Dra tillbaka benet.</li>
+                <li>Land hits without getting hit to build a combo.</li>
+                <li>Step up or down to line up a strike, or to slip out of one.</li>
+                <li>Clear each fight, then follow the GO arrow.</li>
+                <li>Block, duck or sidestep throwing stars.</li>
+              </ul>
+            </div>
+          </div>
+          <button type="button" class="kg-btn kg-btn--primary" data-action="start">Press Start</button>
+          <p class="kg-hint" data-load-note>Loading hero artwork…</p>
+          <button type="button" class="kg-btn kg-btn--ghost" data-action="intro">Replay intro</button>
+          <p class="kg-hint kg-hint--keys">On phones, on-screen buttons appear below the game.</p>
+          <p class="kg-hint kg-hint--touch">Slide the pad to move, double-tap a direction to sprint, hold away from a strike to block. Tap Jump, then Punch or Kick in the air. Throw goes through a guard. Tap the Ajsich meter when it is full.</p>
+        </section>
+
+        <section class="kg-overlay" data-overlay="paused" hidden>
+          <h2 class="kg-title kg-title--small">Paused</h2>
+          <button type="button" class="kg-btn kg-btn--primary" data-action="resume">Resume</button>
+          <button type="button" class="kg-btn" data-action="sound" aria-pressed="true">Sound: On</button>
+        </section>
+
+        <section class="kg-overlay" data-overlay="gameover" hidden>
+          <h2 class="kg-title kg-title--small">Det är jävla shit.</h2>
+          <p class="kg-title__sub">Tamas ties the belt again.</p>
+          <p class="kg-sub">Score <strong data-result="score">0</strong> · Time <strong data-result="time">0:00</strong></p>
+          <button type="button" class="kg-btn kg-btn--primary" data-action="start">Try Again</button>
+        </section>
+
+        <section class="kg-overlay" data-overlay="victory" hidden>
+          <canvas class="kg-hero-pose" data-hero-canvas width="81" height="126" aria-label="Tamas in his victory pose"></canvas>
+          <h2 class="kg-title kg-title--small">Knuten håller.</h2>
+          <p class="kg-title__sub">Bältet är gammalt. Vem knyter det sen?</p>
+          <p class="kg-sub">Score <strong data-result="score">0</strong> · Time <strong data-result="time">0:00</strong></p>
+          <p class="kg-hint" data-result="bonus"></p>
+          <button type="button" class="kg-btn kg-btn--primary" data-action="start">Play Again</button>
+        </section>
+      </div>
+
+      <!--
+        Touch controls. Left thumb: one movement pad (slide the thumb, no lifting needed; double-tap a
+        direction to sprint; hold away from a strike to block). Right thumb: JUMP / PUNCH / KICK / THROW
+        in a diamond, and the Ajsich meter above them, tappable when full. DUCK and BLOCK are not in the
+        default layout; they are alternatives under evaluation, shown with ?controls=duck,block.
+      -->
+      <div class="kg-touch" data-touch hidden aria-label="Touch controls">
+        <div class="kg-touch__left">
+          <div class="kg-touch__pad" data-pad role="group" aria-label="Move: slide your thumb">
+            <span class="kg-touch__arrow kg-touch__arrow--up" aria-hidden="true">▲</span>
+            <span class="kg-touch__arrow kg-touch__arrow--left" aria-hidden="true">◀</span>
+            <span class="kg-touch__arrow kg-touch__arrow--down" aria-hidden="true">▼</span>
+            <span class="kg-touch__arrow kg-touch__arrow--right" aria-hidden="true">▶</span>
+            <span class="kg-touch__nub" aria-hidden="true"></span>
+          </div>
+          <div class="kg-touch__alt" data-touch-alt hidden>
+            <button type="button" class="kg-touch__btn kg-touch__btn--small kg-touch__btn--duck" data-btn="duck" aria-label="Duck" hidden>Duck</button>
+            <button type="button" class="kg-touch__btn kg-touch__btn--small kg-touch__btn--block" data-btn="block" aria-label="Block" hidden>Block</button>
+          </div>
+        </div>
+        <div class="kg-touch__right">
+          <button type="button" class="kg-touch__meter" data-btn="kiai" aria-label="Ajsich: tap when the meter is full">
+            <span class="kg-touch__meter-fill" data-touch-kiai-fill aria-hidden="true"></span>
+            <span class="kg-touch__meter-text" data-touch-kiai-text>Ajsich</span>
+          </button>
+          <div class="kg-touch__actions">
+            <button type="button" class="kg-touch__btn kg-touch__btn--jump" data-btn="jump" aria-label="Jump">Jump</button>
+            <button type="button" class="kg-touch__btn kg-touch__btn--punch" data-btn="punch" aria-label="Punch">Punch</button>
+            <button type="button" class="kg-touch__btn kg-touch__btn--kick" data-btn="kick" aria-label="Kick">Kick</button>
+            <button type="button" class="kg-touch__btn kg-touch__btn--throw" data-btn="throw" aria-label="Throw">Throw</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
