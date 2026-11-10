@@ -472,7 +472,7 @@ export class Renderer {
     }
     if (game.state === 'playing' && game.elapsed < 2.2) {
       g.globalAlpha = game.elapsed < 1.8 ? 1 : (2.2 - game.elapsed) / 0.4;
-      drawText(g, 'FIGHT!', VIEW_W / 2, 78, { color: '#ffffff', scale: 3, align: 'center', shadow: '#5a1e12' });
+      drawText(g, 'SLÅSS!', VIEW_W / 2, 78, { color: '#ffffff', scale: 3, align: 'center', shadow: '#5a1e12' });
       g.globalAlpha = 1;
     }
     if (game.showGo && (this.reducedMotion || Math.floor(time * 3) % 2 === 0)) this.drawGo(g);

@@ -480,7 +480,10 @@
 /* The game element is shorter than the screen (portrait) or taller than it (landscape): the
    menu layer takes the viewport instead, so every screen gets the whole display to work with. */
 @media (max-width: 640px), (orientation: landscape) and (max-height: 520px) {
-  .kg-menu { position: fixed; }
+  .kg-menu { position: fixed; height: 100vh; height: 100dvh; }
+  /* Safari (real devices) clips a fixed descendant at the root's overflow-clipped box: while a
+     menu is open the root clips nothing (main.js sets the class whenever the game is not playing). */
+  .kg-root--menu { overflow: visible; }
 }
 @media (max-width: 640px) {
   .kg-wrap { padding: 8px; }
@@ -500,12 +503,24 @@
   .kg-help__screen { grid-template-columns: 1fr; justify-content: start; }
   .kg-dialog--result { padding: 28px 20px; }
   .kg-stats dd { font-size: 21px; }
-  .kg-title-layout { grid-template-columns: 1fr; grid-template-rows: 245px 1fr; padding: 16px; gap: 4px; overflow: auto; }
-  .kg-title-art { order: -1; width: 190px; height: 245px; justify-self: center; background-image: linear-gradient(0deg, var(--kg-bg), transparent 14%), url("assets/ui/title-tamas.png"); background-size: 100% 100%, cover; background-position: center, 55% 30%; }
-  .kg-title-copy { padding: 14px 14px 20px; justify-content: flex-start; }
-  .kg-title-copy .kg-logo { max-width: 270px; gap: 10px; margin: 20px 0 13px; }
-  .kg-title-copy .kg-spectrum { margin: 16px 0 23px; }
-  .kg-title-copy .kg-quote { font-size: 15px; margin-top: 18px; }
+  /* Portrait title: sized to the visible viewport (dvh), so the whole composition, the portrait,
+     the logo, Play and the secondary actions, fits a phone with its browser chrome showing and
+     needs no scrolling. The sizes are capped at the design's values on tall screens. */
+  .kg-title-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); gap: 0; overflow: auto; }
+  .kg-title-art { order: -1; height: min(245px, 31vh); height: min(245px, 31dvh); aspect-ratio: 190 / 245; width: auto; justify-self: center; background-image: linear-gradient(0deg, var(--kg-bg), transparent 14%), url("assets/ui/title-tamas.png"); background-size: 100% 100%, cover; background-position: center, 55% 30%; }
+  .kg-title-copy { padding: 1dvh 14px 0; justify-content: flex-start; }
+  .kg-title-copy .kg-kicker { font-size: 10px; }
+  .kg-title-copy .kg-logo { max-width: 270px; gap: min(10px, 1.2dvh); margin: min(14px, 1.8dvh) 0 min(10px, 1.2dvh); }
+  .kg-logo__master { height: min(30px, 3.8dvh); width: auto; }
+  .kg-logo__tamas { height: min(78px, 9.5dvh); width: auto; }
+  .kg-title-copy .kg-subtitle { font-size: 12px; }
+  .kg-title-copy .kg-spectrum { margin: min(14px, 1.6dvh) 0 min(18px, 2.2dvh); }
+  .kg-title-actions { gap: min(10px, 1.2dvh); }
+  .kg-title-actions .kg-btn--primary { min-height: min(52px, 6.5dvh); padding: 10px 16px; }
+  .kg-title-actions .kg-btn--plain { min-height: 36px; padding: 7px 10px; }
+  .kg-title-actions .kg-btn--quiet { min-height: 32px; padding: 6px 10px; }
+  .kg-title-copy .kg-quote { font-size: 14px; margin-top: min(16px, 2dvh); }
+  .kg-title-copy .kg-hint--touch { margin-top: min(8px, 1dvh); font-size: 10px; }
   .kg-menu--story { padding: 20px; }
   .kg-story__text { margin: 28px 0; }
   .kg-touch { --kg-touch-btn: 50px; --kg-touch-pad: 128px; padding: 8px 10px; gap: 8px; }
