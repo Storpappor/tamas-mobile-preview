@@ -87,6 +87,8 @@ export class Input {
     this.onTouchDetected = null;
     this.onEvent = null;          // optional diagnostic hook: ({ type, action, source, held })
     this.resetHooks = [];         // the pad clears its own pointer state when everything is reset
+    this.touchClearHooks = [];    // the pad and buttons clear their touch state when all touch is released
+    this.padPointerIds = () => [];
   }
 
   attachKeyboard(target = window) {
@@ -135,12 +137,20 @@ export class Input {
       el.addEventListener('pointercancel', up);
       el.addEventListener('lostpointercapture', up);
       el.addEventListener('contextmenu', (e) => e.preventDefault());
+      this.touchClearHooks.push(() => { if (!this.sources[action].size) el.classList.remove('is-active'); });
     }
     if (pad) this.attachPad(pad);
   }
 
   attachPad(pad) {
     const pointers = new Map(); // pointerId -> { dirs, running, dx, dy }
+    const dormant = new Set();  // thumbs forgotten by a reset: ignored until they lift or press again
+    this.padPointerIds = () => [...pointers.keys()];
+    // Forget a pad pointer and let go of everything it holds, whatever the recorded state says.
+    const forget = (id) => {
+      pointers.delete(id);
+      this.releaseSource(id);
+    };
     const apply = (e) => {
       const rect = pad.getBoundingClientRect();
       const v = padVector(e.clientX, e.clientY, rect);
@@ -158,16 +168,23 @@ export class Input {
       e.preventDefault();
       this.noteTouch();
       try { pad.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      // One thumb per pad: a new touch supersedes any earlier pad pointer whose end was never
+      // reported (a lost pointerup or cancel), so a stale direction can never pin the player.
+      for (const id of [...pointers.keys()]) if (id !== e.pointerId) forget(id);
+      dormant.delete(e.pointerId);
       apply(e);
     };
-    const move = (e) => { if (pointers.has(e.pointerId)) apply(e); };
+    const move = (e) => {
+      if (pointers.has(e.pointerId)) { apply(e); return; }
+      if (dormant.has(e.pointerId)) return;
+      // A contact in motion that the pad never saw start (its pointerdown was lost): adopt it.
+      if (e.pointerType !== 'mouse' && e.buttons > 0) down(e);
+    };
     const up = (e) => {
       e.preventDefault();
-      const state = pointers.get(e.pointerId);
-      if (!state) return;
-      for (const d of state.dirs) this.release(d, e.pointerId);
-      if (state.running) this.release('sprint', e.pointerId);
-      pointers.delete(e.pointerId);
+      dormant.delete(e.pointerId);
+      if (!pointers.has(e.pointerId)) return;
+      forget(e.pointerId);
       this.paintPad(pad, null);
     };
     pad.addEventListener('pointerdown', down);
@@ -177,7 +194,31 @@ export class Input {
     pad.addEventListener('lostpointercapture', up);
     pad.addEventListener('contextmenu', (e) => e.preventDefault());
     // A reset (pause, blur, rotation) forgets the thumbs: the next move must start with a press.
-    this.resetHooks.push(() => { pointers.clear(); this.paintPad(pad, null); });
+    this.resetHooks.push(() => { for (const id of pointers.keys()) dormant.add(id); pointers.clear(); this.paintPad(pad, null); });
+    // All touch released (no finger on the screen): nothing is down, so nothing is dormant either.
+    this.touchClearHooks.push(() => { pointers.clear(); dormant.clear(); this.paintPad(pad, null); });
+  }
+
+  // Let go of every action a source holds.
+  releaseSource(source) {
+    for (const a of ACTIONS) this.release(a, source);
+  }
+
+  // Let go of everything held by touch (the keyboard keeps its keys), and clear the touch state.
+  releaseAllTouch() {
+    for (const a of ACTIONS) for (const source of [...this.sources[a]]) if (source !== KEY_SOURCE) this.release(a, source);
+    for (const hook of this.touchClearHooks) hook();
+  }
+
+  // Watchdog: when the browser reports that no finger is on the screen at all, nothing can be
+  // held by touch, whatever pointer events were lost on the way. Touch events are independent of
+  // pointer capture and of which element the finger started on.
+  attachTouchWatchdog(target) {
+    for (const type of ['touchend', 'touchcancel']) {
+      target.addEventListener(type, (e) => {
+        if (e.touches && e.touches.length === 0) this.releaseAllTouch();
+      }, { passive: true, capture: true });
+    }
   }
 
   // Pad feedback: one class per held direction, `is-running` in the run zone, and the nub follows

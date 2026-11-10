@@ -1,0 +1,60 @@
+{
+  "image": "boss.png",
+  "cell": {
+    "w": 128,
+    "h": 128
+  },
+  "anchor": {
+    "x": 64,
+    "y": 127
+  },
+  "columns": 4,
+  "states": {
+    "idle": [
+      0
+    ],
+    "walk": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "bossPunch": [
+      8,
+      9,
+      10
+    ],
+    "bossKick": [
+      12,
+      13,
+      14
+    ],
+    "block": [
+      16
+    ],
+    "hurt": [
+      20,
+      21
+    ],
+    "knockdown": [
+      24,
+      25,
+      26
+    ],
+    "held": [
+      28
+    ],
+    "thrownDown1": [
+      32
+    ],
+    "thrownDown2": [
+      36
+    ],
+    "fallen": [
+      40
+    ],
+    "getUp": [
+      44
+    ]
+  }
+}

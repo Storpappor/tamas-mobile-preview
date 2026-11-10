@@ -1,0 +1,52 @@
+{
+  "image": "thrower.png",
+  "cell": {
+    "w": 128,
+    "h": 96
+  },
+  "anchor": {
+    "x": 64,
+    "y": 95
+  },
+  "columns": 4,
+  "states": {
+    "idle": [
+      0
+    ],
+    "walk": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "enemyThrow": [
+      8,
+      9,
+      10
+    ],
+    "hurt": [
+      12,
+      13
+    ],
+    "knockdown": [
+      16,
+      17,
+      18
+    ],
+    "held": [
+      20
+    ],
+    "thrownDown1": [
+      24
+    ],
+    "thrownDown2": [
+      28
+    ],
+    "fallen": [
+      32
+    ],
+    "getUp": [
+      36
+    ]
+  }
+}

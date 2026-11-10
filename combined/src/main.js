@@ -117,6 +117,8 @@ export function boot(root) {
     block: root.querySelector('[data-btn="block"]'),
   }, root.querySelector('[data-pad]'));
   ui.showTouchAlternatives((params.get('controls') || '').split(',').map((s) => s.trim()).filter(Boolean));
+  // When no finger is on the screen, nothing is held by touch, whatever pointer event was lost.
+  input.attachTouchWatchdog(document);
 
   const unlockAudio = () => { audio.unlock(); music.unlock(); };
   // The first key press or tap anywhere in the game unlocks audio, so the menu theme can start
@@ -341,7 +343,8 @@ export function boot(root) {
     }
     setInterval(() => {
       const held = Object.entries(input.sources).filter(([, s]) => s.size).map(([a, s]) => `${a}:${s.size}`).join(' ') || 'nothing';
-      box.textContent = [`held ${held}`, `game=${game.state}`, gestures.describe(), '--- input layer ---', ...log, '--- browser ---', ...raw].join('\n');
+      const sources = ['left', 'right', 'up', 'down', 'sprint'].map((a) => `${a}:[${[...input.sources[a]].join(',')}]`).join(' ');
+      box.textContent = [`held ${held}`, `pad pointers [${input.padPointerIds().join(',')}] ${sources}`, `game=${game.state} player x=${Math.round(game.player.x)} facing=${game.player.facing} sprint=${game.player.sprinting}`, gestures.describe(), '--- input layer ---', ...log, '--- browser ---', ...raw].join('\n');
     }, 100);
   }
   root.karateHeroSheet = heroSheet;
