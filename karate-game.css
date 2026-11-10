@@ -194,7 +194,9 @@
 .kg-btn--ghost { background: transparent; border-color: #5a4330; font-size: 11px; padding: 5px 12px; border-bottom-width: 3px; }
 .kg-btn:disabled { opacity: 0.5; cursor: wait; }
 
-/* Touch controls: movement pad on the left, Ajsich meter and the four-button diamond on the right. */
+/* Touch controls: movement pad on the left, Kiai meter and the four-button diamond on the right.
+   Colours follow the UI design of 10 November 2026 (navy #0b1021 / #121a2d, line #514367, cyan
+   #21c5d4 press response, amber #f3b654 Kiai); geometry and hit areas are unchanged. */
 .kg-touch {
   --kg-touch-btn: 56px;
   --kg-touch-pad: 136px;
@@ -203,8 +205,8 @@
   align-items: flex-end;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--kg-panel);
-  border-top: 2px solid #4a3321;
+  background: #0b1021;
+  border-top: 1px solid #514367;
   touch-action: none;
 }
 .kg-touch[hidden] { display: none; }
@@ -215,9 +217,9 @@
   position: relative;
   width: var(--kg-touch-pad); height: var(--kg-touch-pad);
   border-radius: 50%;
-  background: #3a2a1e;
-  border: 2px solid #7a5a3f;
-  box-shadow: inset 0 0 0 5px #2b2119;
+  background: #121a2d;
+  border: 1px solid #514367;
+  box-shadow: inset 0 0 0 4px #0d1324;
   touch-action: none;
   cursor: pointer;
 }
@@ -233,36 +235,37 @@
 .kg-touch__arrow--left { left: 16%; top: 50%; }
 .kg-touch__arrow--right { left: 84%; top: 50%; }
 .kg-touch__pad.is-up .kg-touch__arrow--up, .kg-touch__pad.is-down .kg-touch__arrow--down,
-.kg-touch__pad.is-left .kg-touch__arrow--left, .kg-touch__pad.is-right .kg-touch__arrow--right { color: var(--kg-accent-2); }
+.kg-touch__pad.is-left .kg-touch__arrow--left, .kg-touch__pad.is-right .kg-touch__arrow--right { color: #21c5d4; }
 .kg-touch__nub {
   position: absolute;
   left: 50%; top: 50%;
   width: 40%; height: 40%;
   margin: -20% 0 0 -20%;
   border-radius: 50%;
-  background: #6a4a32;
-  border: 2px solid #7a5a3f;
+  background: #202b40;
+  border: 1px solid #514367;
   box-sizing: border-box;
   pointer-events: none;
   transform: translate(var(--kg-nub-x, 0), var(--kg-nub-y, 0));
   transition: transform 50ms linear;
 }
-.kg-touch__pad.is-active .kg-touch__nub { background: #8a6442; }
+.kg-touch__pad.is-active { border-color: #21c5d4; }
+.kg-touch__pad.is-active .kg-touch__nub { background: #285365; border-color: #21c5d4; }
 /* The run zone: drag the thumb past the dotted ring (80 % of the radius) to sprint; back inside
    60 % to walk again. The ring and the nub turn gold while running. */
 .kg-touch__pad::before {
   content: '';
   position: absolute;
   left: 10%; top: 10%; width: 80%; height: 80%;
-  border: 2px dotted #8a6442;
+  border: 1px dotted #514367;
   border-radius: 50%;
   box-sizing: border-box;
   pointer-events: none;
 }
-.kg-touch__pad.is-running { border-color: var(--kg-kiai); }
-.kg-touch__pad.is-running::before { border-style: solid; border-color: var(--kg-kiai); box-shadow: 0 0 10px rgba(255, 179, 71, 0.5); }
-.kg-touch__pad.is-running .kg-touch__nub { background: var(--kg-kiai); border-color: #fff1c2; }
-.kg-touch__pad.is-running .kg-touch__arrow { color: var(--kg-kiai); }
+.kg-touch__pad.is-running { border-color: #f3b654; }
+.kg-touch__pad.is-running::before { border-style: solid; border-color: #f3b654; box-shadow: 0 0 8px rgba(243, 182, 84, 0.45); }
+.kg-touch__pad.is-running .kg-touch__nub { background: #f3b654; border-color: #fff1c2; }
+.kg-touch__pad.is-running .kg-touch__arrow { color: #f3b654; }
 
 /* Diamond: JUMP on top, PUNCH and KICK side by side, THROW below. One thumb rolls between them. */
 .kg-touch__actions {
@@ -281,20 +284,15 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--kg-text);
-  background: #3a2a1e;
-  border: 2px solid #7a5a3f;
-  border-bottom-width: 5px;
+  color: #f3ead8;
+  background: #121a2d;
+  border: 1px solid #514367;
   border-radius: 50%;
   touch-action: none;
   cursor: pointer;
 }
-.kg-touch__btn.is-active { background: #6a4a32; border-bottom-width: 2px; filter: brightness(1.25); }
-.kg-touch__btn--punch { background: #8f2a20; border-color: #c54a3d; }
-.kg-touch__btn--kick { background: #a0481d; border-color: #d2743b; }
-.kg-touch__btn--jump { background: #3f6a2a; border-color: #6fa84c; }
-.kg-touch__btn--throw { background: #5a3a7a; border-color: #8e63bf; }
-.kg-touch__btn--block { background: #244a7a; border-color: #4c7fc0; }
+.kg-touch__btn.is-active { background: #203b4c; border-color: #21c5d4; box-shadow: inset 0 0 0 1px #21c5d4; }
+.kg-touch__btn:focus-visible { outline: 2px solid #21c5d4; outline-offset: 3px; }
 .kg-touch__btn--small { width: 72px; height: 40px; border-radius: 10px; font-size: 11px; }
 .kg-touch__alt { display: flex; gap: 8px; }
 .kg-touch__alt[hidden] { display: none; }
@@ -311,22 +309,26 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #fff1c2;
-  background: #2a1d12;
-  border: 2px solid #8a5a1e;
-  border-radius: 8px;
+  color: #f3b654;
+  background: #121a2d;
+  border: 1px solid #8b6c3c;
+  border-radius: 3px;
   touch-action: none;
   cursor: pointer;
 }
-.kg-touch__meter-fill { position: absolute; inset: 0; width: 0; background: #8a5a1e; transition: width 120ms linear; }
+.kg-touch__meter-fill { position: absolute; inset: 0; width: 0; background: #5a4a2a; transition: width 120ms linear; }
 .kg-touch__meter-text { position: relative; }
-.kg-touch__meter.is-ready { border-color: var(--kg-kiai); box-shadow: 0 0 0 2px var(--kg-kiai), 0 0 12px var(--kg-kiai); }
-.kg-touch__meter.is-ready .kg-touch__meter-fill { background: var(--kg-kiai); }
-.kg-touch__meter.is-ready .kg-touch__meter-text { color: #2a1d12; }
+.kg-touch__meter.is-ready { border-color: #f3b654; box-shadow: 0 0 0 1px #f3b654; }
+.kg-touch__meter.is-ready .kg-touch__meter-fill { background: #f3b654; }
+.kg-touch__meter.is-ready .kg-touch__meter-text { color: #1a1206; }
 .kg-touch__meter.is-active .kg-touch__meter-fill { background: #fff1c2; }
-.kg-touch__meter.is-active .kg-touch__meter-text { color: #2a1d12; }
+.kg-touch__meter.is-active .kg-touch__meter-text { color: #1a1206; }
 .kg-touch__meter.is-cooling { opacity: 0.7; }
 .kg-touch__meter.is-active { animation: kg-blink 0.5s steps(1) infinite; }
+
+/* Touch panel while a menu has it inert (menu-shell branch): the disabled look of the design. */
+.kg-touch[inert] .kg-touch__btn, .kg-touch[inert] .kg-touch__meter, .kg-touch[inert] .kg-touch__pad { background: #101623; border-color: #393545; color: #777482; box-shadow: none; }
+.kg-touch[inert] .kg-touch__nub { background: #1a2030; border-color: #393545; }
 
 /* While a round is being played the whole game area is a control surface: no scroll, no zoom. */
 .kg-root--playing { touch-action: none; }

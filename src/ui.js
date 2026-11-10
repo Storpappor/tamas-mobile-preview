@@ -162,7 +162,7 @@ export function createUi(root) {
         const mode = kiai.active ? 'active' : kiai.ready ? 'ready' : 'cooling';
         if (force || last.kiaiPct !== pct) {
           hud.kiai.style.width = `${pct}%`;
-          // The touch meter is the Ajsich button itself: its fill shows the same charge.
+          // The touch meter is the Kiai button itself: its fill shows the same charge.
           if (hud.touchKiaiFill) hud.touchKiaiFill.style.width = `${pct}%`;
         }
         if (force || last.kiaiMode !== mode) {
@@ -179,7 +179,7 @@ export function createUi(root) {
             hud.kiaiButton.classList.toggle('is-active', mode === 'active');
             hud.kiaiButton.classList.toggle('is-cooling', mode === 'cooling');
           }
-          if (hud.touchKiaiText) hud.touchKiaiText.textContent = mode === 'ready' ? 'Ajsich: tap!' : mode === 'active' ? 'AJSICH!' : 'Ajsich charging';
+          if (hud.touchKiaiText) hud.touchKiaiText.textContent = mode === 'ready' ? 'Kiai: tap!' : mode === 'active' ? 'Kiai active' : 'Kiai charging';
         }
         last.kiaiPct = pct; last.kiaiMode = mode;
       }

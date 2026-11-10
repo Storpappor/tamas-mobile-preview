@@ -224,9 +224,18 @@ export class Input {
     this.onEvent?.({ type: 'release', action, source, held: set.size });
   }
 
+  // True while any direction is held by a touch pointer (not the keyboard).
+  get padMove() {
+    for (const d of PAD_DIRECTIONS) {
+      for (const source of this.sources[d]) if (source !== KEY_SOURCE) return true;
+    }
+    return false;
+  }
+
   // Snapshot for one simulation frame; edges are then consumed. The shape is the game's input
   // set: `throw` is folded into punch+kick (the grab chord) and never appears by itself; `sprint`
-  // is the pad's run request, read by the player next to the keyboard's double-tap.
+  // is the pad's run request, and `padMove` tells the player that the movement comes from the
+  // pad, so its press/release edges are not taken for keyboard double-taps.
   snapshot() {
     const p = this.pressed;
     const s = {
@@ -234,6 +243,7 @@ export class Input {
       duck: this.held.duck, block: this.held.block,
       jump: p.jump, punch: p.punch || p.throw, kick: p.kick || p.throw, kiai: p.kiai,
       sprint: this.held.sprint,
+      padMove: this.padMove,
     };
     p.jump = p.punch = p.kick = p.kiai = p.throw = false;
     return s;

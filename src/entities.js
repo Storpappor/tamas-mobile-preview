@@ -238,12 +238,18 @@ export class Player extends Fighter {
   }
 
   // Double-tap detection: a direction pressed twice inside the tap window starts a sprint.
+  // Only key presses count as taps. When the movement comes from the touch pad (`input.padMove`)
+  // its press/release edges never reach the detector: on touch the run is asked for explicitly
+  // through the held `sprint` input below, nothing else.
   trackTaps(dt, input) {
+    const taps = !input.padMove;
     for (const d of MOVE_DIRS) {
       if (this.tapTimers[d] > 0) this.tapTimers[d] = Math.max(0, this.tapTimers[d] - dt);
       const held = Boolean(input[d]);
       if (held && !this.heldMove[d]) {
-        if (this.tapTimers[d] > 0 && !this.sprinting) {
+        if (!taps) {
+          this.tapTimers[d] = 0;
+        } else if (this.tapTimers[d] > 0 && !this.sprinting) {
           this.sprinting = true;
           this.sprintDir = d;
           this.tapTimers[d] = 0;

@@ -8,8 +8,12 @@
 // start inside the game, (2) lets single-finger panning through when a menu is open so overlays
 // can still scroll, and (3) snaps the page back to scale 1 if a zoom slipped through while playing
 // or after a rotation. Everything is observable for the ?touchlog=1 diagnostic.
-export function installGestureGuard({ root, isPlaying = () => false, onRotate = null, doc = document, win = window }) {
-  const stats = { blockedGestures: 0, blockedPinchMoves: 0, blockedPlayMoves: 0, zoomResets: 0, lastTarget: '', lastTouches: 0 };
+// The snap-back is bounded: at most `maxResets` within `resetWindowMs`, so a browser that keeps
+// the zoom despite the meta (or keeps firing viewport resizes) cannot be reset in a loop.
+export const ZOOM_RESET = { settleMs: 250, maxResets: 3, resetWindowMs: 10000 };
+
+export function installGestureGuard({ root, isPlaying = () => false, onRotate = null, doc = document, win = window, settleMs = ZOOM_RESET.settleMs }) {
+  const stats = { blockedGestures: 0, blockedPinchMoves: 0, blockedPlayMoves: 0, zoomResets: 0, suppressedResets: 0, lastTarget: '', lastTouches: 0 };
   const inside = (node) => Boolean(node && root.contains(node));
   const name = (node) => {
     if (!node || !node.closest) return String(node && node.nodeName || '?');
@@ -50,8 +54,14 @@ export function installGestureGuard({ root, isPlaying = () => false, onRotate = 
   const meta = doc.querySelector('meta[name="viewport"]');
   const original = meta ? meta.getAttribute('content') : null;
   let timer = null;
+  const recent = []; // times of the last resets, for the bound
+  const now = () => (win.performance ? win.performance.now() : Date.now());
   const resetZoom = (reason) => {
     if (!meta || !original) return false;
+    const t = now();
+    while (recent.length && t - recent[0] > ZOOM_RESET.resetWindowMs) recent.shift();
+    if (recent.length >= ZOOM_RESET.maxResets) { stats.suppressedResets += 1; return false; }
+    recent.push(t);
     meta.setAttribute('content', `${original}, maximum-scale=1, user-scalable=no`);
     stats.zoomResets += 1;
     stats.lastReset = reason;
@@ -64,7 +74,7 @@ export function installGestureGuard({ root, isPlaying = () => false, onRotate = 
     timer = setTimeout(() => {
       timer = null;
       if (scale() > 1.01 && (force || isPlaying())) resetZoom(reason);
-    }, 250);
+    }, settleMs);
   };
   if (win.visualViewport) win.visualViewport.addEventListener('resize', () => check('viewport'));
   const rotated = () => {
@@ -83,7 +93,7 @@ export function installGestureGuard({ root, isPlaying = () => false, onRotate = 
       const vv = win.visualViewport;
       const z = vv ? `scale=${vv.scale.toFixed(2)} vv=${Math.round(vv.width)}x${Math.round(vv.height)} off=${Math.round(vv.offsetLeft)},${Math.round(vv.offsetTop)}` : 'no visualViewport';
       return `${z} win=${win.innerWidth}x${win.innerHeight} ${win.screen && win.screen.orientation ? win.screen.orientation.type : ''}\n` +
-        `gestures blocked=${stats.blockedGestures} pinchMoves=${stats.blockedPinchMoves} playMoves=${stats.blockedPlayMoves} zoomResets=${stats.zoomResets}${stats.lastReset ? ` (${stats.lastReset})` : ''} last touch on ${stats.lastTarget || '-'} x${stats.lastTouches}`;
+        `gestures blocked=${stats.blockedGestures} pinchMoves=${stats.blockedPinchMoves} playMoves=${stats.blockedPlayMoves} zoomResets=${stats.zoomResets}${stats.lastReset ? ` (${stats.lastReset})` : ''}${stats.suppressedResets ? ` suppressed=${stats.suppressedResets}` : ''} last touch on ${stats.lastTarget || '-'} x${stats.lastTouches}`;
     },
   };
 }
