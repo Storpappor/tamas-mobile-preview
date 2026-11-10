@@ -1,0 +1,591 @@
+/* Master Tamas: all rules are scoped under .kg-* so they cannot leak into the host site.
+   Visual direction (design document, 10 November 2026): dark navy ground, opaque panels, bone-white
+   text, cyan for selection and focus, magenta for identity, green / amber / coral for health,
+   Kiai and danger. Pixel headings use the game's own bitmap font; everything else is monospace. */
+.kg-page {
+  margin: 0;
+  background: #080d1b;
+  color: #f3ead8;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.kg-wrap {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.kg-root {
+  --kg-bg: #0b1021;
+  --kg-panel: #121a2d;
+  --kg-text: #f3ead8;
+  --kg-muted: #b0a7bf;
+  --kg-line: #514367;
+  --kg-cyan: #21c5d4;
+  --kg-magenta: #c13d89;
+  --kg-health: #68d68c;
+  --kg-health-low: #ef7184;
+  --kg-kiai: #f3b654;
+  --kg-accent: #ef7184;
+  --kg-accent-2: #f3b654;
+  --kg-dialog: #111729;
+  --kg-dialog-line: #6f5486;
+  --kg-field: #142237;
+  --kg-field-line: #2d5569;
+  position: relative;
+  isolation: isolate;
+  background: var(--kg-bg);
+  border: 1px solid var(--kg-line);
+  box-shadow: inset 0 0 0 5px #0a0e1c;
+  overflow: clip;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  /* No double-tap zoom anywhere in the game (HUD included); menus may still pan with one finger.
+     While a round is played the root switches to `none` (see .kg-root--playing). */
+  touch-action: manipulation;
+}
+/* Corner marks: cyan top-left, magenta bottom-right, the identity colours of the title. */
+.kg-root::before, .kg-root::after {
+  content: "";
+  position: absolute;
+  z-index: 8;
+  width: 30px; height: 18px;
+  pointer-events: none;
+}
+.kg-root::before { top: 3px; left: 3px; border-top: 2px solid var(--kg-cyan); border-left: 1px solid var(--kg-cyan); }
+.kg-root::after { right: 3px; bottom: 3px; border-bottom: 2px solid var(--kg-magenta); border-right: 1px solid var(--kg-magenta); }
+
+/* ---- HUD: health, Kiai, score, enemies, the named boss meter when it applies, pause ---------- */
+.kg-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  min-height: 48px;
+  padding: 8px 14px;
+  background: var(--kg-bg);
+  border-bottom: 1px solid var(--kg-line);
+  font-size: 12px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+.kg-hud__health, .kg-hud__kiai, .kg-hud__boss, .kg-hud__stat { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
+.kg-hud__health { flex: 1.4 1 150px; }
+.kg-hud__kiai { flex: 1 1 130px; }
+.kg-hud__boss { flex: 1 1 140px; }
+.kg-hud__label { color: var(--kg-muted); font-size: 11px; font-weight: 600; }
+.kg-hud__name { color: var(--kg-text); }
+.kg-hud__boss .kg-hud__label { color: var(--kg-accent); }
+.kg-hud__value, .kg-hud__stat strong { color: var(--kg-text); font-size: 12px; font-weight: 700; }
+.kg-hud__state { color: var(--kg-muted); font-size: 11px; }
+.kg-hud__state.is-ready { color: var(--kg-kiai); }
+.kg-hud__state.is-active { color: #fff1c2; }
+.kg-bar {
+  flex: 1 1 36px;
+  min-width: 36px;
+  height: 9px;
+  overflow: hidden;
+  background: #070d18;
+  border: 1px solid var(--kg-line);
+  border-radius: 1px;
+}
+.kg-bar__fill { height: 100%; width: 100%; background: var(--kg-health); transition: width 120ms linear; }
+.kg-bar__fill.is-low { background: var(--kg-health-low); }
+.kg-bar--kiai .kg-bar__fill { background: #8b6c3c; }
+.kg-bar--kiai .kg-bar__fill.is-ready { background: var(--kg-kiai); }
+.kg-bar--kiai .kg-bar__fill.is-active { background: #fff1c2; }
+.kg-bar--boss .kg-bar__fill { background: var(--kg-accent); }
+.kg-btn--hud {
+  margin-left: auto;
+  height: 28px;
+  min-width: 58px;
+  padding: 0 9px;
+  border: 1px solid var(--kg-line);
+  border-radius: 2px;
+  background: var(--kg-panel);
+  color: var(--kg-text);
+  font: 600 11px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.kg-btn--hud:hover, .kg-btn--hud:focus-visible { border-color: var(--kg-cyan); outline: 1px solid var(--kg-cyan); outline-offset: 2px; }
+
+/* ---- Stage ------------------------------------------------------------------------------- */
+.kg-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #080c18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+.kg-stage canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ---- Shared type and small parts --------------------------------------------------------- */
+.kg-kicker { display: block; font-size: 11px; line-height: 1.4; letter-spacing: 2px; color: var(--kg-muted); text-transform: uppercase; }
+.kg-kicker--cyan { color: var(--kg-cyan); }
+.kg-subtitle { margin: 0; font-size: 13px; letter-spacing: 2px; line-height: 1.5; color: var(--kg-text); text-transform: uppercase; }
+.kg-spectrum { display: flex; width: 62%; height: 3px; margin: 20px 0 26px; }
+.kg-spectrum i { display: block; height: 100%; }
+.kg-spectrum i:nth-child(1) { width: 68%; background: var(--kg-cyan); }
+.kg-spectrum i:nth-child(2) { width: 17%; background: #76558e; }
+.kg-spectrum i:nth-child(3) { width: 15%; background: var(--kg-magenta); }
+.kg-quote { margin: 0; color: var(--kg-muted); font-size: 17px; line-height: 1.45; font-style: normal; max-width: 44ch; }
+.kg-hint { margin: 0; color: var(--kg-muted); font-size: 12px; line-height: 1.5; }
+.kg-heading { margin: 0; line-height: 0; }
+.kg-logo { margin: 0; display: grid; justify-items: center; gap: 14px; line-height: 0; }
+.kg-pixel-text { display: block; margin: 0 auto; max-width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; }
+.kg-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.kg-key {
+  display: inline-block;
+  padding: 5px 7px;
+  border: 1px solid #6b597d;
+  box-shadow: 0 2px 0 #6b597d;
+  background: #1b2438;
+  color: var(--kg-text);
+  font: 12px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+/* ---- Buttons ----------------------------------------------------------------------------- */
+.kg-btn {
+  font: inherit;
+  color: var(--kg-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.kg-btn:focus-visible { outline: 2px solid var(--kg-cyan); outline-offset: 3px; }
+.kg-btn:disabled { opacity: 0.48; cursor: wait; }
+/* The one action per screen: a full row, cyan label with a chevron, the key on the right. */
+.kg-btn--primary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  width: 100%;
+  min-height: 52px;
+  padding: 13px 18px;
+  background: var(--kg-field);
+  border: 1px solid var(--kg-field-line);
+  box-shadow: 0 0 0 4px #080d19;
+  color: var(--kg-cyan);
+  text-align: left;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.kg-btn--primary .kg-btn__label::before { content: "> "; }
+.kg-btn--primary .kg-key { color: var(--kg-muted); background: transparent; border: 0; box-shadow: none; padding: 0; font-size: 11px; }
+.kg-btn--primary:hover { background: #192f43; border-color: var(--kg-cyan); }
+/* Secondary actions: plain rows; quiet actions: small bordered chips. */
+.kg-btn--plain { display: block; width: 100%; min-height: 42px; padding: 10px 12px; text-align: center; font-size: 14px; letter-spacing: 1px; }
+.kg-btn--plain:hover { background: #172237; border-color: var(--kg-line); }
+.kg-btn--muted { font-size: 12px; color: var(--kg-muted); }
+.kg-btn--quiet { padding: 9px 12px; min-height: 36px; background: #101629; border: 1px solid var(--kg-line); font-size: 11px; line-height: 1.4; letter-spacing: 0.5px; }
+.kg-btn--quiet:hover { border-color: var(--kg-cyan); }
+.kg-menu__row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+/* ---- Menu layer: title, story, pause, help, results -------------------------------------- */
+.kg-menus { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.kg-overlay { box-sizing: border-box; }
+.kg-overlay[hidden] { display: none; }
+.kg-menu {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 14px;
+  background: rgba(3, 7, 21, 0.72);
+  overflow: clip;
+  pointer-events: auto;
+  text-align: center;
+}
+/* Dialogs size to their content and stay inside the viewport (sticky offsets); long content
+   scrolls inside the dialog with its footer action in view, never the page. */
+.kg-dialog {
+  position: sticky;
+  top: 12px;
+  bottom: 12px;
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 100%);
+  max-height: calc(100dvh - 24px);
+  box-sizing: border-box;
+  padding: 30px;
+  overflow: auto;
+  background: var(--kg-dialog);
+  border: 1px solid var(--kg-dialog-line);
+  text-align: center;
+}
+.kg-dialog::before { content: ""; position: absolute; top: -1px; left: 28px; width: 62px; height: 3px; background: var(--kg-cyan); }
+.kg-dialog__header { display: grid; justify-items: center; gap: 13px; margin-bottom: 26px; }
+.kg-dialog__header--start { justify-items: start; text-align: left; gap: 7px; margin-bottom: 12px; }
+.kg-dialog__actions { display: grid; gap: 7px; }
+.kg-dialog__secondary { display: grid; margin-top: 5px; }
+.kg-dialog__actions .kg-menu__row { margin-top: 8px; }
+.kg-run-status { font-size: 11px; line-height: 1.7; color: var(--kg-muted); border-top: 1px solid #34304a; margin-top: 20px; padding-top: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.kg-run-status:empty { display: none; }
+.kg-pixel-text--heading { height: 28px; width: auto; }
+
+/* Title: copy on the left, the portrait on the right, the whole game element as the screen. */
+.kg-menu--title { padding: 0; background: var(--kg-bg); }
+.kg-title-layout { display: grid; grid-template-columns: 56% 44%; width: 100%; height: 100%; padding: 18px; box-sizing: border-box; }
+.kg-title-copy { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 22px 30px; min-width: 0; z-index: 2; }
+.kg-title-copy .kg-logo { width: 100%; max-width: 410px; margin: 28px 0 18px; }
+.kg-title-copy .kg-subtitle { margin-top: 4px; }
+.kg-title-actions { width: 100%; max-width: 400px; display: grid; gap: 10px; }
+.kg-title-copy .kg-quote { margin-top: 22px; }
+.kg-title-copy .kg-hint--touch { margin-top: 10px; }
+.kg-title-art {
+  min-width: 0;
+  background-image:
+    linear-gradient(90deg, var(--kg-bg) 4%, transparent 38%),
+    linear-gradient(270deg, var(--kg-bg), transparent 10%),
+    linear-gradient(180deg, var(--kg-bg), transparent 16%),
+    linear-gradient(0deg, var(--kg-bg), transparent 14%),
+    url("assets/ui/title-tamas.png");
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, cover;
+  background-position: center, center, center, center, 55% 30%;
+  background-repeat: no-repeat;
+}
+.kg-hint--touch { display: none; }
+.kg-root--touch .kg-hint--touch { display: block; }
+
+/* Story cards: the intro and the in-game exchanges, full screen, typed out line by line. */
+.kg-menu--story { padding: 30px; background: linear-gradient(160deg, #0b1021, #10172c 55%, #160f24); cursor: pointer; justify-content: center; }
+.kg-story { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.kg-story .kg-spectrum { margin: 14px 0 0; }
+.kg-story__text {
+  margin: 40px 0;
+  min-height: 3.4em;
+  max-width: 92%;
+  font-size: clamp(14px, 2.6vw, 22px);
+  line-height: 1.8;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--kg-text);
+  white-space: pre-line;
+}
+.kg-story__text.is-typing::after { content: '\258E'; color: var(--kg-cyan); animation: kg-blink 0.6s steps(1) infinite; }
+.kg-story__actions { display: grid; gap: 15px; width: min(100%, 320px); }
+.kg-story__hint { margin: 16px 0 0; color: var(--kg-muted); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+@keyframes kg-blink { 50% { opacity: 0; } }
+
+/* Help: two columns of rows (action left, keys right), notes, the screen legend, Back in view. */
+.kg-dialog--help { width: min(880px, 100%); padding: 18px 26px; }
+.kg-help__scroll { overflow: auto; min-height: 0; padding-right: 6px; text-align: left; scrollbar-color: var(--kg-dialog-line) var(--kg-dialog); scrollbar-width: thin; }
+.kg-help__columns { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.kg-help__section h3 { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: var(--kg-kiai); font-weight: 500; letter-spacing: 2px; text-transform: uppercase; }
+.kg-help__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; border-bottom: 1px solid #302e46; font-size: 13px; line-height: 1.4; }
+.kg-keys { display: flex; align-items: center; justify-content: end; gap: 6px; flex-wrap: wrap; text-align: right; }
+.kg-help__note { margin: 8px 0 0; font-size: 12px; line-height: 1.55; color: var(--kg-muted); }
+.kg-help__note strong { font-weight: 500; color: var(--kg-text); }
+.kg-help__screen { display: grid; grid-template-columns: repeat(4, auto); justify-content: space-between; gap: 8px 18px; margin-top: 10px; padding: 10px 0 2px; border-top: 1px solid var(--kg-line); font-size: 11px; line-height: 1.5; color: var(--kg-muted); }
+.kg-help__screen b { color: var(--kg-text); font-weight: 500; text-transform: uppercase; }
+.kg-dialog__footer { display: flex; justify-content: center; padding-top: 10px; }
+.kg-btn--back { max-width: 210px; min-height: 46px; }
+/* Keyboard and touch copy follow the input in use. */
+.kg-only-touch { display: none; }
+.kg-root--touch .kg-only-touch { display: block; }
+.kg-root--touch .kg-help__note .kg-only-touch { display: inline; }
+.kg-root--touch .kg-help__note strong.kg-only-keys { display: none; }
+.kg-root--touch .kg-only-keys { display: none; }
+.kg-root--touch .kg-key { display: none; }
+.kg-root--touch .kg-btn--primary .kg-key { display: none; }
+
+/* Results: the same dialog, the run's numbers in three columns. */
+.kg-dialog--result { width: min(550px, 100%); padding: 35px; align-items: center; }
+.kg-dialog--result .kg-heading { margin-top: 20px; }
+.kg-pixel-text--result { max-width: 100%; }
+.kg-dialog--result .kg-quote { margin: 18px 0 26px; font-size: 16px; }
+.kg-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin: 0 0 24px; }
+.kg-stats dt { margin: 0; font-size: 10px; line-height: 1.5; letter-spacing: 1px; color: var(--kg-muted); text-transform: uppercase; }
+.kg-stats dd { margin: 0; font-size: 24px; line-height: 1.5; color: var(--kg-kiai); font-variant-numeric: tabular-nums; }
+.kg-stats dd small { font-size: 13px; }
+.kg-dialog--result .kg-dialog__actions { width: 100%; gap: 12px; }
+.kg-dialog--result .kg-hint { margin: -14px 0 20px; }
+.kg-dialog--result .kg-hint:empty { display: none; }
+.kg-hero-pose { image-rendering: pixelated; image-rendering: crisp-edges; width: 54px; height: auto; margin-bottom: 10px; }
+
+/* The title screen shows no run data: the HUD belongs to an active run. */
+.kg-root--title .kg-hud { display: none; }
+
+/* ---- Touch controls: the controls workstream's layout (fdf10cc: one slide pad, the Kiai meter
+   button and the Jump / Punch / Kick / Throw diamond) in the design's skin. Geometry, hit areas
+   and class names are theirs; only colours, borders and type come from the tokens above. ------ */
+.kg-touch {
+  --kg-touch-btn: 56px;
+  --kg-touch-pad: 136px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--kg-bg);
+  border-top: 1px solid var(--kg-line);
+  touch-action: none;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.kg-touch[hidden] { display: none; }
+.kg-touch__left, .kg-touch__right { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+/* One pad element: the thumb's position on it is the direction, so it can slide without lifting. */
+.kg-touch__pad {
+  position: relative;
+  width: var(--kg-touch-pad); height: var(--kg-touch-pad);
+  border-radius: 50%;
+  background: var(--kg-panel);
+  border: 1px solid var(--kg-line);
+  box-shadow: inset 0 0 0 4px #0d1324;
+  touch-action: none;
+  cursor: pointer;
+}
+.kg-touch__arrow {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 15px;
+  color: var(--kg-muted);
+  pointer-events: none;
+}
+.kg-touch__arrow--up { left: 50%; top: 16%; }
+.kg-touch__arrow--down { left: 50%; top: 84%; }
+.kg-touch__arrow--left { left: 16%; top: 50%; }
+.kg-touch__arrow--right { left: 84%; top: 50%; }
+.kg-touch__pad.is-up .kg-touch__arrow--up, .kg-touch__pad.is-down .kg-touch__arrow--down,
+.kg-touch__pad.is-left .kg-touch__arrow--left, .kg-touch__pad.is-right .kg-touch__arrow--right { color: var(--kg-cyan); }
+.kg-touch__nub {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 40%; height: 40%;
+  margin: -20% 0 0 -20%;
+  border-radius: 50%;
+  background: #202b40;
+  border: 1px solid var(--kg-line);
+  box-sizing: border-box;
+  pointer-events: none;
+  transform: translate(var(--kg-nub-x, 0), var(--kg-nub-y, 0));
+  transition: transform 50ms linear;
+}
+.kg-touch__pad.is-active { border-color: var(--kg-cyan); }
+.kg-touch__pad.is-active .kg-touch__nub { background: #285365; border-color: var(--kg-cyan); }
+.kg-touch__pad.is-left { --kg-nub-x: -24%; }
+.kg-touch__pad.is-right { --kg-nub-x: 24%; }
+.kg-touch__pad.is-up { --kg-nub-y: -24%; }
+.kg-touch__pad.is-down { --kg-nub-y: 24%; }
+/* The run zone (controls 1b): drag the thumb past the dotted ring (80 % of the radius) to run;
+   back inside 60 % to walk again. The ring and the nub take the Kiai amber while running. */
+.kg-touch__pad::before {
+  content: '';
+  position: absolute;
+  left: 10%; top: 10%; width: 80%; height: 80%;
+  border: 1px dotted var(--kg-line);
+  border-radius: 50%;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.kg-touch__pad.is-running { border-color: var(--kg-kiai); }
+.kg-touch__pad.is-running::before { border-style: solid; border-color: var(--kg-kiai); box-shadow: 0 0 8px rgba(243, 182, 84, 0.45); }
+.kg-touch__pad.is-running .kg-touch__nub { background: var(--kg-kiai); border-color: #fff1c2; }
+.kg-touch__pad.is-running .kg-touch__arrow { color: var(--kg-kiai); }
+
+/* Diamond: JUMP on top, PUNCH and KICK side by side, THROW below. One thumb rolls between them. */
+.kg-touch__actions {
+  position: relative;
+  width: calc(var(--kg-touch-btn) * 2.75);
+  height: calc(var(--kg-touch-btn) * 2.75);
+}
+.kg-touch__actions .kg-touch__btn { position: absolute; }
+.kg-touch__btn--jump { left: 50%; top: 0; transform: translateX(-50%); }
+.kg-touch__btn--punch { left: 0; top: 50%; transform: translateY(-50%); }
+.kg-touch__btn--kick { right: 0; top: 50%; transform: translateY(-50%); }
+.kg-touch__btn--throw { left: 50%; bottom: 0; transform: translateX(-50%); }
+.kg-touch__btn {
+  width: var(--kg-touch-btn); height: var(--kg-touch-btn);
+  padding: 0;
+  font: 600 11px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--kg-text);
+  background: var(--kg-panel);
+  border: 1px solid var(--kg-line);
+  border-radius: 50%;
+  touch-action: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.kg-touch__btn:focus-visible { outline: 2px solid var(--kg-cyan); outline-offset: 3px; }
+.kg-touch__btn.is-active { background: #203b4c; border-color: var(--kg-cyan); box-shadow: inset 0 0 0 1px var(--kg-cyan); }
+.kg-touch__btn--small { width: 72px; height: 40px; border-radius: 10px; }
+.kg-touch__alt { display: flex; gap: 8px; }
+.kg-touch__alt[hidden] { display: none; }
+
+/* The Kiai meter is the button: the fill shows the charge, it lights up amber when ready. */
+.kg-touch__meter {
+  position: relative;
+  width: calc(var(--kg-touch-btn) * 2.75);
+  height: 36px;
+  padding: 0;
+  overflow: hidden;
+  font: 600 11px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--kg-kiai);
+  background: var(--kg-panel);
+  border: 1px solid #8b6c3c;
+  border-radius: 3px;
+  touch-action: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.kg-touch__meter-fill { position: absolute; inset: 0; width: 0; background: #5a4a2a; transition: width 120ms linear; }
+.kg-touch__meter-text { position: relative; }
+.kg-touch__meter.is-ready { border-color: var(--kg-kiai); box-shadow: 0 0 0 1px var(--kg-kiai); }
+.kg-touch__meter.is-ready .kg-touch__meter-fill { background: var(--kg-kiai); }
+.kg-touch__meter.is-ready .kg-touch__meter-text { color: #1a1206; }
+.kg-touch__meter.is-active .kg-touch__meter-fill { background: #fff1c2; }
+.kg-touch__meter.is-active .kg-touch__meter-text { color: #1a1206; }
+.kg-touch__meter.is-cooling { opacity: 0.75; }
+.kg-touch__meter.is-active { animation: kg-blink 0.5s steps(1) infinite; }
+/* Touch panel while a menu is open: inert (set by main.js) and dimmed under the menu layer. */
+.kg-touch[inert] .kg-touch__btn, .kg-touch[inert] .kg-touch__meter, .kg-touch[inert] .kg-touch__pad { background: #101623; border-color: #393545; color: #777482; box-shadow: none; }
+.kg-touch[inert] .kg-touch__nub { background: #1a2030; border-color: #393545; }
+
+/* Touch panel while a menu has it inert (menu-shell branch): the disabled look of the design. */
+.kg-touch[inert] .kg-touch__btn, .kg-touch[inert] .kg-touch__meter, .kg-touch[inert] .kg-touch__pad { background: #101623; border-color: #393545; color: #777482; box-shadow: none; }
+.kg-touch[inert] .kg-touch__nub { background: #1a2030; border-color: #393545; }
+
+/* While a round is being played the whole game area is a control surface: no scroll, no zoom. */
+.kg-root--playing { touch-action: none; }
+
+/* ---- Phones ------------------------------------------------------------------------------ */
+/* The game element is shorter than the screen (portrait) or taller than it (landscape): the
+   menu layer takes the viewport instead, so every screen gets the whole display to work with. */
+@media (max-width: 640px), (orientation: landscape) and (max-height: 520px) {
+  .kg-menu { position: fixed; }
+}
+@media (max-width: 640px) {
+  .kg-wrap { padding: 8px; }
+  .kg-hud { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-rows: 25px 20px; gap: 5px 10px; min-height: 64px; padding: 6px 8px; }
+  .kg-hud__health { grid-column: 1 / 3; grid-row: 1; }
+  .kg-btn--hud { grid-column: 3; grid-row: 1; height: 24px; margin-left: 0; }
+  .kg-hud__kiai { grid-column: 1; grid-row: 2; gap: 5px; }
+  .kg-hud__score { grid-column: 2; grid-row: 2; gap: 5px; }
+  .kg-hud__enemies { grid-column: 3; grid-row: 2; gap: 5px; }
+  .kg-hud__combo { grid-column: 1 / 4; grid-row: 3; }
+  .kg-hud__boss { grid-column: 1 / 4; grid-row: 4; }
+  .kg-hud__kiai .kg-bar { min-width: 22px; }
+  .kg-menu { padding: 16px; }
+  .kg-dialog { padding: 24px 20px; max-height: calc(100dvh - 16px); top: 8px; bottom: 8px; }
+  .kg-dialog--help { max-height: calc(100dvh - 16px); }
+  .kg-help__columns { grid-template-columns: 1fr; gap: 20px; }
+  .kg-help__screen { grid-template-columns: 1fr; justify-content: start; }
+  .kg-dialog--result { padding: 28px 20px; }
+  .kg-stats dd { font-size: 21px; }
+  .kg-title-layout { grid-template-columns: 1fr; grid-template-rows: 245px 1fr; padding: 16px; gap: 4px; overflow: auto; }
+  .kg-title-art { order: -1; width: 190px; height: 245px; justify-self: center; background-image: linear-gradient(0deg, var(--kg-bg), transparent 14%), url("assets/ui/title-tamas.png"); background-size: 100% 100%, cover; background-position: center, 55% 30%; }
+  .kg-title-copy { padding: 14px 14px 20px; justify-content: flex-start; }
+  .kg-title-copy .kg-logo { max-width: 270px; gap: 10px; margin: 20px 0 13px; }
+  .kg-title-copy .kg-spectrum { margin: 16px 0 23px; }
+  .kg-title-copy .kg-quote { font-size: 15px; margin-top: 18px; }
+  .kg-menu--story { padding: 20px; }
+  .kg-story__text { margin: 28px 0; }
+  .kg-touch { --kg-touch-btn: 50px; --kg-touch-pad: 128px; padding: 8px 10px; gap: 8px; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .kg-menu { padding: 13px; }
+  .kg-dialog { padding: 17px 24px; }
+  .kg-dialog__header { gap: 8px; margin-bottom: 15px; }
+  .kg-pixel-text--heading { height: 23px; }
+  .kg-dialog__actions { gap: 6px; }
+  .kg-btn--primary { min-height: 44px; padding: 10px 14px; font-size: 15px; }
+  .kg-btn--plain { min-height: 32px; padding: 7px 10px; font-size: 12px; }
+  .kg-btn--quiet { min-height: 30px; padding: 6px 9px; }
+  .kg-run-status { margin-top: 12px; padding-top: 7px; font-size: 10px; }
+  .kg-dialog--help { height: 100%; padding: 18px 24px; }
+  .kg-dialog--help .kg-dialog__header { margin-bottom: 10px; gap: 5px; }
+  .kg-dialog__footer { padding-top: 12px; }
+  .kg-help__section h3 { margin-top: 0; }
+  .kg-help__row { min-height: 38px; }
+  .kg-dialog--result { padding: 22px 32px; }
+  .kg-title-layout { padding: 10px 12px; grid-template-columns: 56% 44%; overflow: auto; }
+  .kg-title-copy { padding: 4px 28px; }
+  .kg-title-copy .kg-logo { max-width: 265px; gap: 6px; margin: 6px 0 8px; }
+  .kg-logo__master { height: 22px; width: auto; }
+  .kg-logo__tamas { height: 52px; width: auto; }
+  .kg-title-copy .kg-kicker { font-size: 10px; }
+  .kg-title-copy .kg-subtitle { font-size: 11px; }
+  .kg-title-copy .kg-spectrum { margin: 8px 0 10px; }
+  .kg-title-actions { gap: 5px; }
+  .kg-title-actions .kg-btn--primary { min-height: 40px; padding: 8px 14px; }
+  .kg-title-actions .kg-btn--plain { min-height: 28px; padding: 5px 10px; }
+  .kg-title-actions .kg-btn--quiet { min-height: 26px; padding: 4px 9px; }
+  .kg-title-copy .kg-quote { font-size: 13px; margin-top: 8px; }
+  .kg-title-copy .kg-hint--touch { margin-top: 5px; font-size: 10px; }
+  .kg-hero-pose { display: none; }
+  .kg-dialog--result .kg-heading { margin-top: 8px; }
+  .kg-dialog--result .kg-quote { margin: 8px 0 10px; }
+  .kg-stats { margin-bottom: 10px; }
+  .kg-dialog--result .kg-hint { margin: -4px 0 10px; }
+  .kg-menu--story { padding: 16px; }
+  .kg-story__text { margin: 18px 0; }
+  .kg-story__actions { gap: 8px; }
+}
+
+/* Phone held sideways (controls workstream rule): the picture fills the screen height and the
+   controls float over its bottom corners, inside the safe area, so nothing is pushed below. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .kg-page--touch { background: #000; }
+  .kg-page--touch .kg-wrap { padding: 0; max-width: none; }
+  .kg-root--touch {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    border: 0;
+  }
+  .kg-root--touch .kg-hud { flex-shrink: 0; min-height: 36px; padding: 4px 10px; font-size: 11px; gap: 4px 12px; }
+  .kg-root--touch .kg-hud__label { font-size: 10px; }
+  .kg-root--touch .kg-btn--hud { height: 25px; }
+  .kg-root--touch .kg-stage { flex: 1; min-height: 0; aspect-ratio: auto; }
+  .kg-root--touch .kg-touch {
+    --kg-touch-btn: 52px;
+    --kg-touch-pad: 124px;
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 0 calc(10px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px));
+    background: transparent;
+    border: 0;
+    pointer-events: none;
+  }
+  .kg-root--touch .kg-touch > * { pointer-events: auto; }
+  .kg-root--touch .kg-touch__pad, .kg-root--touch .kg-touch__btn, .kg-root--touch .kg-touch__meter { opacity: 0.68; }
+  .kg-root--touch .kg-touch__pad.is-active, .kg-root--touch .kg-touch__btn.is-active, .kg-root--touch .kg-touch__meter.is-ready { opacity: 0.95; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kg-bar__fill, .kg-touch__meter-fill, .kg-touch__nub { transition: none; }
+  .kg-story__text.is-typing::after, .kg-touch__meter.is-active { animation: none; }
+}
+
+/* Make the hidden attribute win over the flex/grid display rules above. */
+.kg-root [hidden] { display: none !important; }

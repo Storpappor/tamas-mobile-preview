@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Master Tamas: Siege of Sanshin. An original arcade-style side-scrolling karate game.">
+  <title>Master Tamas: Siege of Sanshin</title>
+  <link rel="stylesheet" href="karate-game.css">
+</head>
+<body class="kg-page">
+  <!--
+    Everything for the game lives inside #karate-game. Styles are prefixed with "kg-"
+    so this block can be dropped into any page of the website without side effects.
+  -->
+  <main class="kg-wrap">
+    <div id="karate-game" class="kg-root">
+      <header class="kg-hud" aria-label="Game status">
+        <div class="kg-hud__health">
+          <span class="kg-hud__label kg-hud__name">Tamas</span>
+          <div class="kg-bar" role="img" aria-label="Player health">
+            <div class="kg-bar__fill" data-hud="health"></div>
+          </div>
+          <span class="kg-hud__value" data-hud="health-text">100 / 100</span>
+        </div>
+        <div class="kg-hud__kiai">
+          <span class="kg-hud__label">Kiai</span>
+          <div class="kg-bar kg-bar--kiai" role="img" aria-label="Kiai meter">
+            <div class="kg-bar__fill" data-hud="kiai"></div>
+          </div>
+          <span class="kg-hud__state" data-hud="kiai-text">Ready</span>
+        </div>
+        <div class="kg-hud__stat kg-hud__score"><span class="kg-hud__label">Score</span><strong data-hud="score">0</strong></div>
+        <div class="kg-hud__stat kg-hud__enemies"><span class="kg-hud__label">Enemies</span><strong data-hud="enemies">22</strong></div>
+        <div class="kg-hud__stat kg-hud__combo" data-hud="combo-wrap" hidden><span class="kg-hud__label">Combo</span><strong data-hud="combo">x1</strong></div>
+        <div class="kg-hud__boss" data-hud="boss-wrap" hidden>
+          <span class="kg-hud__label">Råttfällan</span>
+          <div class="kg-bar kg-bar--boss" role="img" aria-label="Råttfällan's health">
+            <div class="kg-bar__fill" data-hud="boss"></div>
+          </div>
+        </div>
+        <button type="button" class="kg-btn kg-btn--hud" data-action="pause">Pause</button>
+      </header>
+
+      <div class="kg-stage" data-stage>
+        <canvas width="320" height="180" aria-label="Master Tamas: Siege of Sanshin game"></canvas>
+      </div>
+
+      <!--
+        Menu layer: the title, the story cards, pause, help and the result screens live here, over
+        the whole game element rather than inside the 16:9 picture, so they size to the viewport and
+        never clip. While any of them is open the touch panel is inert (see main.js).
+      -->
+      <div class="kg-menus" data-menus>
+        <section class="kg-overlay kg-menu kg-menu--story" data-overlay="story" hidden aria-live="polite">
+          <div class="kg-story">
+            <span class="kg-kicker">Siege of Sanshin</span>
+            <div class="kg-spectrum" aria-hidden="true"><i></i><i></i><i></i></div>
+            <p class="kg-story__text" data-story-text></p>
+            <div class="kg-story__actions">
+              <button type="button" class="kg-btn kg-btn--primary" data-action="story-next"><span class="kg-btn__label">Continue</span><kbd class="kg-key">Enter</kbd></button>
+              <button type="button" class="kg-btn kg-btn--plain" data-action="skip-story">Skip intro</button>
+            </div>
+            <p class="kg-story__hint" data-story-hint>Enter · Space · tap to continue</p>
+          </div>
+        </section>
+
+        <section class="kg-overlay kg-menu kg-menu--title" data-overlay="start" hidden aria-label="Title screen">
+          <div class="kg-title-layout">
+            <div class="kg-title-copy">
+              <span class="kg-kicker">Team Sanshin presents</span>
+              <h1 class="kg-logo">
+                <canvas class="kg-pixel-text kg-logo__master" data-pixel-text="Master" data-scale="6" data-shadow="layered" aria-hidden="true"></canvas>
+                <canvas class="kg-pixel-text kg-logo__tamas" data-pixel-text="Tamas" data-scale="15" data-shadow="layered" aria-hidden="true"></canvas>
+                <span class="kg-visually-hidden">Master Tamas</span>
+              </h1>
+              <p class="kg-subtitle">Siege of Sanshin</p>
+              <div class="kg-spectrum" aria-hidden="true"><i></i><i></i><i></i></div>
+              <div class="kg-title-actions">
+                <button type="button" class="kg-btn kg-btn--primary" data-action="start"><span class="kg-btn__label">Play</span><kbd class="kg-key">Enter</kbd></button>
+                <p class="kg-hint" data-load-note>Loading hero artwork…</p>
+                <button type="button" class="kg-btn kg-btn--plain" data-action="help">How to play</button>
+                <div class="kg-menu__row">
+                  <button type="button" class="kg-btn kg-btn--quiet" data-action="intro">Intro</button>
+                  <button type="button" class="kg-btn kg-btn--quiet" data-action="sound" aria-pressed="true">Sound: On</button>
+                </div>
+              </div>
+              <p class="kg-quote">“Dra tillbaka benet.”</p>
+              <p class="kg-hint kg-hint--touch">Slide the pad to move, drag past the ring to run. Jump, Punch, Kick, Throw. Tap the Kiai meter when it is full.</p>
+            </div>
+            <div class="kg-title-art" role="img" aria-label="Tamas, close-cropped grey hair and a white gi, standing in the neon-lit street"></div>
+          </div>
+        </section>
+
+        <section class="kg-overlay kg-menu" data-overlay="paused" hidden aria-label="Paused">
+          <div class="kg-dialog kg-dialog--narrow">
+            <header class="kg-dialog__header">
+              <span class="kg-kicker">Master Tamas</span>
+              <h2 class="kg-heading"><canvas class="kg-pixel-text kg-pixel-text--heading" data-pixel-text="Paused" data-scale="4" data-shadow="layered" aria-hidden="true"></canvas><span class="kg-visually-hidden">Paused</span></h2>
+            </header>
+            <div class="kg-dialog__actions">
+              <button type="button" class="kg-btn kg-btn--primary" data-action="resume"><span class="kg-btn__label">Resume</span><kbd class="kg-key">Esc</kbd></button>
+              <button type="button" class="kg-btn kg-btn--plain" data-action="help">How to play</button>
+              <div class="kg-dialog__secondary">
+                <button type="button" class="kg-btn kg-btn--plain kg-btn--muted" data-action="restart">Restart run</button>
+                <button type="button" class="kg-btn kg-btn--plain kg-btn--muted" data-action="title">Title screen</button>
+              </div>
+              <div class="kg-menu__row">
+                <button type="button" class="kg-btn kg-btn--quiet" data-action="sound" aria-pressed="true">Sound: On</button>
+              </div>
+            </div>
+            <footer class="kg-run-status" data-pause-status></footer>
+          </div>
+        </section>
+
+        <section class="kg-overlay kg-menu" data-overlay="help" hidden aria-label="How to play">
+          <div class="kg-dialog kg-dialog--help">
+            <header class="kg-dialog__header kg-dialog__header--start">
+              <span class="kg-kicker kg-kicker--cyan"><span class="kg-only-keys">Keyboard</span><span class="kg-only-touch">Touch</span></span>
+              <h2 class="kg-heading"><canvas class="kg-pixel-text kg-pixel-text--heading" data-pixel-text="How to play" data-scale="4" aria-hidden="true"></canvas><span class="kg-visually-hidden">How to play</span></h2>
+            </header>
+            <div class="kg-help__scroll">
+              <div class="kg-help__columns">
+                <section class="kg-help__section">
+                  <h3>Movement</h3>
+                  <div class="kg-help__rows kg-only-keys">
+                    <div class="kg-help__row"><span>Move</span><span class="kg-keys"><kbd class="kg-key">WASD</kbd> / <kbd class="kg-key">↑ ↓ ← →</kbd></span></div>
+                    <div class="kg-help__row"><span>Jump</span><span class="kg-keys"><kbd class="kg-key">Space</kbd></span></div>
+                    <div class="kg-help__row"><span>Duck</span><span class="kg-keys"><kbd class="kg-key">C</kbd></span></div>
+                  </div>
+                  <div class="kg-help__rows kg-only-touch">
+                    <div class="kg-help__row"><span>Move</span><span class="kg-keys">Slide your thumb on the pad</span></div>
+                    <div class="kg-help__row"><span>Jump</span><span class="kg-keys">JUMP</span></div>
+                    <div class="kg-help__row"><span>Change lane</span><span class="kg-keys">Slide up or down</span></div>
+                  </div>
+                  <p class="kg-help__note"><strong class="kg-only-keys">Sprint:</strong><span class="kg-only-keys"> double-tap a direction.</span><strong class="kg-only-touch">Run:</strong><span class="kg-only-touch"> drag the thumb farther, past the ring; back inside to walk.</span><br>Clear each fight, then follow the GO arrow.<br>Step up or down to line up a strike, or to slip out of one.</p>
+                </section>
+                <section class="kg-help__section">
+                  <h3>Combat</h3>
+                  <div class="kg-help__rows kg-only-keys">
+                    <div class="kg-help__row"><span>Punch</span><span class="kg-keys"><kbd class="kg-key">J</kbd></span></div>
+                    <div class="kg-help__row"><span>Kick</span><span class="kg-keys"><kbd class="kg-key">K</kbd></span></div>
+                    <div class="kg-help__row"><span>Block</span><span class="kg-keys"><kbd class="kg-key">L</kbd></span></div>
+                    <div class="kg-help__row"><span>Grab &amp; throw</span><span class="kg-keys"><kbd class="kg-key">J</kbd> + <kbd class="kg-key">K</kbd></span></div>
+                    <div class="kg-help__row"><span>Kiai</span><span class="kg-keys"><kbd class="kg-key">I</kbd></span></div>
+                  </div>
+                  <div class="kg-help__rows kg-only-touch">
+                    <div class="kg-help__row"><span>Punch</span><span class="kg-keys">PUNCH</span></div>
+                    <div class="kg-help__row"><span>Kick</span><span class="kg-keys">KICK</span></div>
+                    <div class="kg-help__row"><span>In the air</span><span class="kg-keys">JUMP, then PUNCH or KICK</span></div>
+                    <div class="kg-help__row"><span>Grab &amp; throw</span><span class="kg-keys">THROW</span></div>
+                    <div class="kg-help__row"><span>Kiai</span><span class="kg-keys">Tap the meter when it is full</span></div>
+                  </div>
+                  <p class="kg-help__note"><strong>Defend:</strong> <span class="kg-only-keys">block, or hold away from a strike. Duck under high kicks, jump over low sweeps, block or sidestep throwing stars.</span><span class="kg-only-touch">hold the pad away from a strike to block it. Jump over low sweeps; slide up or down to slip out of a strike or a star.</span><br><strong>Throw:</strong> goes through a guard; strikes do not.<br><strong>Kiai:</strong> double damage for 4 seconds and breaks guards, then recharges.<br>Land hits without getting hit to build a combo.</p>
+                </section>
+              </div>
+              <div class="kg-help__screen">
+                <span><b>Health</b> · Tamas's health</span>
+                <span><b>Kiai</b> · ready when full</span>
+                <span><b>Enemies</b> · enemies still standing</span>
+                <span><b>Råttfällan</b> · boss health when active</span>
+              </div>
+            </div>
+            <footer class="kg-dialog__footer">
+              <button type="button" class="kg-btn kg-btn--primary kg-btn--back" data-action="help-back"><span class="kg-btn__label">Back</span><kbd class="kg-key">Esc</kbd></button>
+            </footer>
+          </div>
+        </section>
+
+        <section class="kg-overlay kg-menu" data-overlay="gameover" hidden aria-label="Defeat">
+          <div class="kg-dialog kg-dialog--result">
+            <span class="kg-kicker">Master Tamas</span>
+            <h2 class="kg-heading"><canvas class="kg-pixel-text kg-pixel-text--result" data-pixel-text="Tamas is down" data-scale="4" data-color="#ef7184" aria-hidden="true"></canvas><span class="kg-visually-hidden">Tamas is down</span></h2>
+            <p class="kg-quote">“Det är jävla shit.”</p>
+            <dl class="kg-stats">
+              <div><dt>Score</dt><dd data-result="score">0</dd></div>
+              <div><dt>Cleared</dt><dd><span data-result="cleared">0</span><small>/<span data-result="total">22</span></small></dd></div>
+              <div><dt>Time</dt><dd data-result="time">0:00</dd></div>
+            </dl>
+            <div class="kg-dialog__actions">
+              <button type="button" class="kg-btn kg-btn--primary" data-action="start"><span class="kg-btn__label">Try again</span><kbd class="kg-key">Enter</kbd></button>
+              <div class="kg-menu__row">
+                <button type="button" class="kg-btn kg-btn--quiet" data-action="help">How to play</button>
+                <button type="button" class="kg-btn kg-btn--quiet" data-action="title">Title screen</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="kg-overlay kg-menu" data-overlay="victory" hidden aria-label="Victory">
+          <div class="kg-dialog kg-dialog--result">
+            <canvas class="kg-hero-pose" data-hero-canvas width="81" height="126" aria-label="Tamas in his victory pose"></canvas>
+            <span class="kg-kicker">Master Tamas</span>
+            <h2 class="kg-heading"><canvas class="kg-pixel-text kg-pixel-text--result" data-pixel-text="The knot holds" data-scale="4" data-shadow="layered" aria-hidden="true"></canvas><span class="kg-visually-hidden">The knot holds</span></h2>
+            <p class="kg-quote">“Knuten håller. Vem knyter det sen?”</p>
+            <dl class="kg-stats">
+              <div><dt>Score</dt><dd data-result="score">0</dd></div>
+              <div><dt>Cleared</dt><dd><span data-result="cleared">22</span><small>/<span data-result="total">22</span></small></dd></div>
+              <div><dt>Time</dt><dd data-result="time">0:00</dd></div>
+            </dl>
+            <p class="kg-hint" data-result="bonus"></p>
+            <div class="kg-dialog__actions">
+              <button type="button" class="kg-btn kg-btn--primary" data-action="start"><span class="kg-btn__label">Play again</span><kbd class="kg-key">Enter</kbd></button>
+              <div class="kg-menu__row">
+                <button type="button" class="kg-btn kg-btn--quiet" data-action="title">Title screen</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Touch controls: the controls workstream's phase-1 layout (fdf10cc), styled by the design tokens. -->
+      <div class="kg-touch" data-touch hidden aria-label="Touch controls">
+        <div class="kg-touch__left">
+          <div class="kg-touch__pad" data-pad role="group" aria-label="Move: slide your thumb">
+            <span class="kg-touch__arrow kg-touch__arrow--up" aria-hidden="true">▲</span>
+            <span class="kg-touch__arrow kg-touch__arrow--left" aria-hidden="true">◀</span>
+            <span class="kg-touch__arrow kg-touch__arrow--down" aria-hidden="true">▼</span>
+            <span class="kg-touch__arrow kg-touch__arrow--right" aria-hidden="true">▶</span>
+            <span class="kg-touch__nub" aria-hidden="true"></span>
+          </div>
+          <div class="kg-touch__alt" data-touch-alt hidden>
+            <button type="button" class="kg-touch__btn kg-touch__btn--small kg-touch__btn--duck" data-btn="duck" aria-label="Duck" hidden>Duck</button>
+            <button type="button" class="kg-touch__btn kg-touch__btn--small kg-touch__btn--block" data-btn="block" aria-label="Block" hidden>Block</button>
+          </div>
+        </div>
+        <div class="kg-touch__right">
+          <button type="button" class="kg-touch__meter" data-btn="kiai" aria-label="Kiai: tap when the meter is full">
+            <span class="kg-touch__meter-fill" data-touch-kiai-fill aria-hidden="true"></span>
+            <span class="kg-touch__meter-text" data-touch-kiai-text>Kiai</span>
+          </button>
+          <div class="kg-touch__actions">
+            <button type="button" class="kg-touch__btn kg-touch__btn--jump" data-btn="jump" aria-label="Jump">Jump</button>
+            <button type="button" class="kg-touch__btn kg-touch__btn--punch" data-btn="punch" aria-label="Punch">Punch</button>
+            <button type="button" class="kg-touch__btn kg-touch__btn--kick" data-btn="kick" aria-label="Kick">Kick</button>
+            <button type="button" class="kg-touch__btn kg-touch__btn--throw" data-btn="throw" aria-label="Throw">Throw</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
